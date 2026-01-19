@@ -59,39 +59,33 @@ export const removeAllUniforms = (node) => {
     }
 }
 
-export const getMaxIndex = (node, str) => {
-    let maxIndex = -1;
+export const getNextAvailableIndex = (node, str) => {
+    const used = new Set();
     for (let i = 0; i < node.inputs.length; i++) {
-        if (node.inputs[i].name.startsWith(str)) {
-            maxIndex = Math.max(maxIndex, parseInt(node.inputs[i].name.replace(str, "")));
+        const name = node.inputs[i].name;
+        if (name.startsWith(str)) {
+            const index = parseInt(name.replace(str, ""));
+            if (!Number.isNaN(index) && index >= 0) {
+                used.add(index);
+            }
         }
     }
-    return maxIndex;
+    let candidate = 0;
+    while (used.has(candidate)) {
+        candidate += 1;
+    }
+    return candidate;
 }
 
-export const getNextName = (node, str) => { return str + (getMaxIndex(node, str) + 1); }
-
-export const findFirstUniformIndex = (node) => {
-    for (let i = 0; i < node.inputs.length; i++) {
-        if (node.inputs[i].name.startsWith("u_") || 
-            node.inputs[i].name === "uniforms" ||
-            node.inputs[i].name === "vertex_code" ||
-            node.inputs[i].name === "3D model"
-        ) {
-            return i;
-        }
-    }
-    return -1;
+export const getNextName = (node, str) => {
+    return str + getNextAvailableIndex(node, str);
 }
 
 export const addInput = (node, index, str, type) => {
     let name = str;
-
-    let firstUniformIndex = findFirstUniformIndex(node);
-    if (index > firstUniformIndex) 
+    if (str !== "uniforms") {
         name = getNextName(node, str);
-    else
-        name = str + Math.max(index-firstUniformIndex+1, 0);
+    }
 
     node.graph.beforeChange();
     

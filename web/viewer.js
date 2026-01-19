@@ -1,5 +1,5 @@
 import { app } from "../../scripts/app.js";
-import { removeAllUniforms, addInput, getMaxIndex } from "./utils.js";
+import { removeAllUniforms, addInput } from "./utils.js";
 
 const ViewerId = "glslViewer";
 const UniformsId = "glslUniforms";
@@ -34,9 +34,17 @@ app.registerExtension({
 		nodeType.prototype.onConfigure = function () {
 		    const r = onConfigure ? onConfigure.apply(this, arguments) : undefined;
 
-            if (this.inputs.length > 1) {
-                let last_index = this.inputs.length - 1;
-                this.removeInput(last_index);
+            let placeholderIndex = -1;
+            for (let i = 0; i < this.inputs.length; i++) {
+                if (this.inputs[i]?.name === "...") {
+                    placeholderIndex = i;
+                    break;
+                }
+            }
+
+            if (placeholderIndex !== -1 && placeholderIndex !== this.inputs.length - 1) {
+                this.removeInput(placeholderIndex);
+                this.addInput("...", "*");
             }
             
             return r;
@@ -90,20 +98,13 @@ app.registerExtension({
             }
             // If it's disconnecting
             else {
-                if (ioSlot.name.startsWith("uniforms")) {
-                    this.removeInput(index);
-                }
-                else if (ioSlot.name.startsWith("u_tex")) {
-                    let maxTexIndex = getMaxIndex(this, "u_tex");
-                    let maxTexName = "u_tex" + maxTexIndex;
-                    if (ioSlot.name === maxTexName) {
-                        this.removeInput(index);
-                    }
-                }
-                else if (ioSlot.name.startsWith("u_val")) {
-                    let maxValIndex = getMaxIndex(this, "u_val");
-                    let maxValName = "u_val" + maxValIndex;
-                    if (ioSlot.name === maxValName) {
+                const lastIndex = this.inputs.length - 1;
+                const lastInputIndex = this.inputs[lastIndex]?.name === "..." ? lastIndex - 1 : lastIndex;
+
+                if (index === lastInputIndex) {
+                    if (ioSlot.name.startsWith("uniforms") ||
+                        ioSlot.name.startsWith("u_tex") ||
+                        ioSlot.name.startsWith("u_val")) {
                         this.removeInput(index);
                     }
                 }
